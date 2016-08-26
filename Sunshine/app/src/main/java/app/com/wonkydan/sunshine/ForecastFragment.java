@@ -5,6 +5,7 @@ package app.com.wonkydan.sunshine;
  */
 
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -20,8 +21,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -80,6 +83,8 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        final TextView textView = (TextView) getActivity().findViewById(R.id.list_item_forcast_textview);
+
         String[] data = {
                 "Mon 6/23 - Sunny - 31/17",
                 "Tue 6/24 - Foggy - 21/8",
@@ -97,6 +102,23 @@ public class ForecastFragment extends Fragment {
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forcast);
         listView.setAdapter(weatherArray);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                TextView textView = (TextView) view.findViewById(R.id.list_item_forcast_textview);
+                String text = textView.getText().toString();
+
+                Bundle bundle = new Bundle();
+                bundle.putString("weather", text);
+
+                Intent intent = new Intent(getContext(), DetailActivity.class);
+                intent.putExtras(bundle);
+
+                startActivity(intent);
+
+//                Toast.makeText(getContext(), "The weather is " + text, Toast.LENGTH_SHORT).show();
+            }
+        });
 
 
         return rootView;

@@ -6,11 +6,13 @@ package app.com.wonkydan.sunshine;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
@@ -55,9 +57,15 @@ public class ForecastFragment extends Fragment {
         super.onCreate(savedInstanceState);
         //set menu options
         setHasOptionsMenu(true);
-        FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
-        fetchWeatherTask.execute("94043");
 
+        updateWeather();
+
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -70,13 +78,49 @@ public class ForecastFragment extends Fragment {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_refresh:
-                FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
-                fetchWeatherTask.execute("94043");
+                updateWeather();
+                return true;
+            case R.id.show_location:
+               openPreferedLocationOnMap();
+                return true;
+            case R.id.settings:
+                Intent intent = new Intent(getContext(), SettingsActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
 
+    }
+
+    private void openPreferedLocationOnMap(){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        //get the location information from the preferences
+        String location = prefs.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+
+        Uri gmmIntentUri = Uri.parse("geo:0,0?").buildUpon()
+                .appendQueryParameter("q", location + ",UK")
+                .build();
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+        mapIntent.setPackage("com.google.android.apps.maps");
+
+        if(mapIntent.resolveActivity(getContext().getPackageManager()) != null) {
+            startActivity(mapIntent);
+        }else{
+            Log.d("location check", "Couldn't get " + location + ", no map app installed");
+        }
+    }
+
+    private void updateWeather() {
+        FetchWeatherTask weatherTask = new FetchWeatherTask();
+        //get preference information
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        //get the location information from the preferences
+        String location = prefs.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+
+        weatherTask.execute(location);
     }
 
     @Override
@@ -86,13 +130,7 @@ public class ForecastFragment extends Fragment {
         final TextView textView = (TextView) getActivity().findViewById(R.id.list_item_forcast_textview);
 
         String[] data = {
-                "Mon 6/23 - Sunny - 31/17",
-                "Tue 6/24 - Foggy - 21/8",
-                "Wed 6/25 - Cloudy - 22/17",
-                "Thurs 6/26 - Rainy - 18/11",
-                "Fri 6/27 - Foggy - 21/10",
-                "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
-                "Sun 6/29 - Sunny - 20/7"
+
         };
         List<String> weekForecast = new ArrayList<>(Arrays.asList(data));
 
@@ -142,9 +180,23 @@ public class ForecastFragment extends Fragment {
          * Prepare the weather high/lows for presentation.
          */
         private String formatHighLows(double high, double low) {
-//             For presentation, assume the user doesn't care about tenths of a degree.
+            //get the unit information from the preferences
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String units = prefs.getString(getString(R.string.pref_unit_key),
+                    getString(R.string.pref_unit_value));
+
+            if(units.equals("imperial")){
+                high = (high * 1.8) + 32;
+                low = (low * 1.8) + 32;
+            }else if(!units.equals("metric")){
+                Log.d("Formatting the temps", "Units not found " + units);
+            }
+
+//  For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
+
+
 
             String highLowStr = roundedHigh + "/" + roundedLow;
             return highLowStr;
@@ -254,11 +306,12 @@ public class ForecastFragment extends Fragment {
                 final String UNIT_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
                 final String APPI_KEY = "APPID";
+                final String COUNTRY_CODE = ",gb";
 
                 Uri builtUri = Uri.parse(FORCAST_BASE_URL).buildUpon()
-                        .appendQueryParameter(QUERY_PARAM, params[0])
+                        .appendQueryParameter(QUERY_PARAM, params[0] + COUNTRY_CODE)
                         .appendQueryParameter(FORMAT_PARAM, format)
-                        .appendQueryParameter(UNIT_PARAM, units)
+                        .appendQueryParameter(UNIT_PARAM,units)
                         .appendQueryParameter(DAYS_PARAM, Integer.toString(days))
                         .appendQueryParameter(APPI_KEY, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                         .build();

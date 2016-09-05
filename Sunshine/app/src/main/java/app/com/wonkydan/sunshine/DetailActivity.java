@@ -16,6 +16,7 @@ package app.com.wonkydan.sunshine;
  * limitations under the License.
  */
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
@@ -25,23 +26,16 @@ public class DetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent intent = getParentActivityIntent();
         setContentView(R.layout.activity_detail);
         if (savedInstanceState == null) {
 
             DetailFragment detailFragment = new DetailFragment();
-            detailFragment.setArguments(getIntent().getExtras());
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, detailFragment)
                     .commit();
-
-
-
         }
 
-
-
     }
-
-
 
 }
